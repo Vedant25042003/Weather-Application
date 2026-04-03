@@ -1,6 +1,5 @@
 package com.example.weatherapplication.Activity;
 
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -15,14 +14,14 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.weatherapplication.Adapter.Weather_DayItem_Adapter;
+import com.example.weatherapplication.Adapter.WeatherDayItemAdapter;
 import com.example.weatherapplication.Api.ApiRepository;
+import com.example.weatherapplication.Models.WeatherDaysForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
 import com.example.weatherapplication.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -35,10 +34,14 @@ public class MainActivity extends AppCompatActivity {
     ApiRepository apiRepository = new ApiRepository();
     WeatherDetails weatherDetails;
     RecyclerView DayWeatherForecast;
-    Weather_DayItem_Adapter weatherDayItemAdapter;
-    ArrayList<Weather_DayItem_Adapter> list;
+    ArrayList<WeatherDaysForecast> weatherDaysForecasts;
+    WeatherDayItemAdapter weatherDayItemAdapter;
 
 
+    /**
+     *
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,16 +58,26 @@ public class MainActivity extends AppCompatActivity {
         weatherImage = findViewById(R.id.weatherImage);
         DayWeatherForecast = findViewById(R.id.day_items);
 
-        String City = "Aurangabad";
-        String aqi = "no";
-
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        DayWeatherForecast.setLayoutManager(layoutManager);
-
-        weatherDayItemAdapter = new Weather_DayItem_Adapter();
+        weatherDayItemAdapter = new WeatherDayItemAdapter(this, weatherDaysForecasts);
         DayWeatherForecast.setAdapter(weatherDayItemAdapter);
 
-        apiRepository.getCurrentTemp(City, aqi).enqueue(new Callback<WeatherDetails>() {
+
+        String City = "Aurangabad";
+        String aqi = "no";
+        int days = 3;
+        String alerts = "no";
+
+        getCurrentWeather(City, aqi);
+    }
+
+    /**
+     *
+     * @param city
+     * @param aqi
+     */
+    private void getCurrentWeather(String city, String aqi){
+
+        apiRepository.getCurrentTemp(city, aqi).enqueue(new Callback<WeatherDetails>() {
             @Override
             public void onResponse(@NonNull Call<WeatherDetails> call, @NonNull Response<WeatherDetails> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -88,7 +101,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-
 
 }
