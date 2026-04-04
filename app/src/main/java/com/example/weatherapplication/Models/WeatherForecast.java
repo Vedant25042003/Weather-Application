@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-public class WeatherDaysForecast {
+public class WeatherForecast {
 
     @SerializedName("forecast")
     private Forecast forecast;
@@ -34,15 +34,43 @@ public class WeatherDaysForecast {
             public Day getDay() {
                 return day;
             }
-            public static class Day {
-                @SerializedName("maxtemp_c")
-                private double maxtemp_c;
 
-                public double getMaxtemp() {
-                    return maxtemp_c;
+            public static class Day {
+
+                @SerializedName("maxtemp_c")
+                private float maxDaytemp_c;
+
+                @SerializedName("condition")
+                private DayCondition condition;
+
+                public DayCondition getDayCondition() {
+                    return condition;
                 }
+
+                public float getMaxtemp() {
+                    return maxDaytemp_c;
+                }
+
+                public static class DayCondition{
+
+                    @SerializedName("text")
+                    private String dayText;
+
+                    @SerializedName("icon")
+                    private String image;
+
+                    public String getDayText() {
+                        return dayText;
+                    }
+
+                    public String getImage() {
+                        return image;
+                    }
+
+                }
+
             }
         }
-    }
 
+    }
 }

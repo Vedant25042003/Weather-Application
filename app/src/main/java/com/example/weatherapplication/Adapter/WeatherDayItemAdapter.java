@@ -4,57 +4,58 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.weatherapplication.Models.WeatherDaysForecast;
-import com.example.weatherapplication.Models.WeatherDetails;
+import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.R;
+import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAdapter.ViewHolder > {
+public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAdapter.ViewHolder> {
 
-    Context context;
-    ArrayList<WeatherDaysForecast> list;
-    ArrayList<WeatherDaysForecast.Forecast.ForecastDay> forecastDay;
+    private Context context;
+    private List<WeatherForecast.Forecast.ForecastDay> forecastDays;
 
-    public WeatherDayItemAdapter(Context context, ArrayList<WeatherDaysForecast> list){
-        this.context=context;
-        this.list=list;
+    public WeatherDayItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay> list) {
+        this.context = context;
+        this.forecastDays = list;
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.weather_day_item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.weather_day_item, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-//        WeatherDaysForecast forecast = list.get(position);
-//        WeatherDaysForecast.Forecast.ForecastDay forecastDay = forecastDay.get(position);
-//        holder.weather_temp.setText(String.valueOf(forecastDay.getDay().getMaxtemp()));
-//        holder.weather_temp.setText(String.valueOf(list));
+        WeatherForecast.Forecast.ForecastDay forecastDay = forecastDays.get(position);
+        holder.forecastDaytemp.setText(forecastDay.getDay().getDayCondition().getDayText());
+        Picasso.get()
+                .load("https:" + forecastDay.getDay().getDayCondition().getImage())
+                .into(holder.forecastDayImage);
     }
 
     @Override
     public int getItemCount() {
-        return 3;
+        return forecastDays != null ? forecastDays.size() : 0;
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView forecastDaytemp;
+        ImageView forecastDayImage;
 
-        TextView weather_temp;
-
-        public ViewHolder(@NonNull View itemView){
+        public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            weather_temp = itemView.findViewById(R.id.WeekDay);
-        }
+            forecastDaytemp = itemView.findViewById(R.id.WeekDay);
+            forecastDayImage = itemView.findViewById(R.id.weatherImageDay);
 
+        }
     }
 }

@@ -16,12 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.weatherapplication.Adapter.WeatherDayItemAdapter;
 import com.example.weatherapplication.Api.ApiRepository;
-import com.example.weatherapplication.Models.WeatherDaysForecast;
+import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
 import com.example.weatherapplication.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -34,14 +35,9 @@ public class MainActivity extends AppCompatActivity {
     ApiRepository apiRepository = new ApiRepository();
     WeatherDetails weatherDetails;
     RecyclerView DayWeatherForecast;
-    ArrayList<WeatherDaysForecast> weatherDaysForecasts;
     WeatherDayItemAdapter weatherDayItemAdapter;
 
 
-    /**
-     *
-     * @param savedInstanceState
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,25 +54,16 @@ public class MainActivity extends AppCompatActivity {
         weatherImage = findViewById(R.id.weatherImage);
         DayWeatherForecast = findViewById(R.id.day_items);
 
-        weatherDayItemAdapter = new WeatherDayItemAdapter(this, weatherDaysForecasts);
-        DayWeatherForecast.setAdapter(weatherDayItemAdapter);
-
-
-        String City = "Aurangabad";
+        String City = "London";
         String aqi = "no";
         int days = 3;
         String alerts = "no";
 
+        getDaysForecast(City, days, aqi, alerts);
         getCurrentWeather(City, aqi);
     }
 
-    /**
-     *
-     * @param city
-     * @param aqi
-     */
-    private void getCurrentWeather(String city, String aqi){
-
+    private void getCurrentWeather(String city, String aqi) {
         apiRepository.getCurrentTemp(city, aqi).enqueue(new Callback<WeatherDetails>() {
             @Override
             public void onResponse(@NonNull Call<WeatherDetails> call, @NonNull Response<WeatherDetails> response) {
@@ -97,7 +84,31 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<WeatherDetails> call, @NonNull Throwable t) {
+                Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
+    private void getDaysForecast(String City, int days, String aqi, String alerts) {
+        apiRepository.getDaysForecast(City, days, aqi, alerts).enqueue(new Callback<WeatherForecast>() {
+            @Override
+            public void onResponse(@NonNull Call<WeatherForecast> call, @NonNull Response<WeatherForecast> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    WeatherForecast forecastResponse = response.body();
+
+                    if (forecastResponse.getForecast() != null && forecastResponse.getForecast().getForecastDay() != null) {
+                        weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay());
+                        DayWeatherForecast.setAdapter(weatherDayItemAdapter);
+                    }
+
+                } else {
+                    Toast.makeText(MainActivity.this, "Failed to get forecast", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<WeatherForecast> call, @NonNull Throwable t) {
+                Toast.makeText(MainActivity.this, "Forecast Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
