@@ -26,6 +26,12 @@ public class WeatherForecast {
             private String date;
             @SerializedName("day")
             private Day day;
+            @SerializedName("hour")
+            private List<Hour> hour;
+
+            public List<Hour> getHour() {
+                return hour;
+            }
 
             public String getDate() {
                 return date;
@@ -59,7 +65,7 @@ public class WeatherForecast {
                     @SerializedName("icon")
                     private String image;
 
-                    public String getDayText() {
+                    public String getDayConText() {
                         return dayText;
                     }
 
@@ -69,6 +75,46 @@ public class WeatherForecast {
 
                 }
 
+            }
+
+            public static class Hour{
+                @SerializedName("time")
+                private String time;
+
+                @SerializedName("temp_c")
+                private String temp_c;
+
+                @SerializedName("condition")
+                private HourCondition hourCondition;
+
+                public String getTime() {
+                    return time;
+                }
+
+                public String getTemp_c() {
+                    return temp_c;
+                }
+
+
+                public HourCondition getHourCondition() {
+                    return hourCondition;
+                }
+
+                public static class HourCondition{
+                    @SerializedName("text")
+                    private String HourText;
+
+                    @SerializedName("icon")
+                    private String HourIcon;
+
+                    public String getHourIcon() {
+                        return HourIcon;
+                    }
+
+                    public String getHourText() {
+                        return HourText;
+                    }
+                }
             }
         }
 

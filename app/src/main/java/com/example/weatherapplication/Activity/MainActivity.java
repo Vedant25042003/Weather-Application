@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.weatherapplication.Adapter.WeatherDayItemAdapter;
+import com.example.weatherapplication.Adapter.WeatherHourItemAdapter;
 import com.example.weatherapplication.Api.ApiRepository;
 import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
@@ -34,8 +35,9 @@ public class MainActivity extends AppCompatActivity {
     ImageView weatherImage;
     ApiRepository apiRepository = new ApiRepository();
     WeatherDetails weatherDetails;
-    RecyclerView DayWeatherForecast;
+    RecyclerView DayWeatherForecast, DayHourForecast;
     WeatherDayItemAdapter weatherDayItemAdapter;
+    WeatherHourItemAdapter weatherHourItemAdapter;
 
 
     @Override
@@ -53,13 +55,14 @@ public class MainActivity extends AppCompatActivity {
         weather = findViewById(R.id.weatherText);
         weatherImage = findViewById(R.id.weatherImage);
         DayWeatherForecast = findViewById(R.id.day_items);
+        DayHourForecast = findViewById(R.id.hourForecast);
 
-        String City = "London";
+        String City = "Aurangabad";
         String aqi = "no";
         int days = 3;
         String alerts = "no";
 
-        getDaysForecast(City, days, aqi, alerts);
+        getDaysForecast(City, days+1, aqi, alerts);
         getCurrentWeather(City, aqi);
     }
 
@@ -71,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                     weatherDetails = response.body();
 
                     String imageUrl = "https://" + weatherDetails.getCurrent().getCondition().getWeatherIcon();
-                    temp.setText(String.valueOf(weatherDetails.getCurrent().getCurrentTemperature()));
+                    temp.setText(String.valueOf(weatherDetails.getCurrent().getCurrentTemperature()+ "°c"));
                     weather.setText(String.valueOf(weatherDetails.getCurrent().getCondition().getWeatherText()));
                     Picasso.get()
                             .load(imageUrl)
@@ -99,6 +102,9 @@ public class MainActivity extends AppCompatActivity {
                     if (forecastResponse.getForecast() != null && forecastResponse.getForecast().getForecastDay() != null) {
                         weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay());
                         DayWeatherForecast.setAdapter(weatherDayItemAdapter);
+
+                        weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(0).getHour());
+                        DayHourForecast.setAdapter(weatherHourItemAdapter);
                     }
 
                 } else {
@@ -111,6 +117,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Forecast Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
-    }
 
+    }
 }

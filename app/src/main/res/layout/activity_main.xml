@@ -20,6 +20,7 @@
         app:layout_constraintTop_toTopOf="parent"/>
 
     <androidx.cardview.widget.CardView
+        android:id="@+id/weatherCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintHeight_min="250dp"
@@ -75,19 +76,33 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textSize="40sp"
-                android:gravity="center"/>
+                android:textSize="35sp"
+                android:gravity="center"
+                android:layout_marginVertical="10dp"/>
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/day_items"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                tools:listitem="@layout/weather_day_item"
+                android:id="@+id/hourForecast"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:listitem="@layout/weather_hour_item"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 android:orientation="horizontal"
-                android:layout_gravity="center_horizontal"
-                tools:itemCount="3"/>
+                android:layout_marginVertical="5dp" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/day_items"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:listitem="@layout/weather_day_item"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="horizontal"
+        android:layout_gravity="center_horizontal"
+        app:layout_constraintTop_toBottomOf="@+id/weatherCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginVertical="10dp"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
