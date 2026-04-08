@@ -51,6 +51,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
         holder.DayofWeek.setText(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()));
 
         holder.forecastDaycondition.setText(forecastDay.getDay().getDayCondition().getDayConText());
+        holder.dayTemp.setText(String.valueOf(forecastDay.getDay().getMaxtemp()+"°"+ "/ " +forecastDay.getDay().getMinDayTemp_c()+"°"));
         Picasso.get()
                 .load("https:" + forecastDay.getDay().getDayCondition().getImage())
                 .into(holder.forecastDayImage);
@@ -69,7 +70,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView forecastDaycondition, DayofWeek;
+        TextView forecastDaycondition, DayofWeek, dayTemp;
         ImageView forecastDayImage;
 
         public ViewHolder(@NonNull View itemView) {
@@ -77,6 +78,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
             forecastDaycondition = itemView.findViewById(R.id.WeekDay);
             forecastDayImage = itemView.findViewById(R.id.weatherImageDay);
             DayofWeek = itemView.findViewById(R.id.dayofWeek);
+            dayTemp = itemView.findViewById(R.id.tempOfDay);
 
         }
     }

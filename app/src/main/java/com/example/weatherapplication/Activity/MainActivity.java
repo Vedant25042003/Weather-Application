@@ -1,13 +1,22 @@
 package com.example.weatherapplication.Activity;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -20,8 +29,12 @@ import com.example.weatherapplication.Api.ApiRepository;
 import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
 import com.example.weatherapplication.R;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.squareup.picasso.Picasso;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView DayWeatherForecast, DayHourForecast;
     WeatherDayItemAdapter weatherDayItemAdapter;
     WeatherHourItemAdapter weatherHourItemAdapter;
-
+    FusedLocationProviderClient fusedLocationProviderClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,13 +70,33 @@ public class MainActivity extends AppCompatActivity {
         DayWeatherForecast = findViewById(R.id.day_items);
         DayHourForecast = findViewById(R.id.hourForecast);
 
-        String City = "Aurangabad";
-        String aqi = "no";
-        int days = 3;
-        String alerts = "no";
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION},1);
+        } else {
+            fusedLocationProviderClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            if (location != null) {
+                                double latitude = location.getLatitude();
+                                double longitude = location.getLongitude();
 
-        getDaysForecast(City, days+1, aqi, alerts);
-        getCurrentWeather(City, aqi);
+                                Log.d("Location", "Lat: " + latitude + ", Lon: " + longitude);
+
+//                                String City = latitude + "," + longitude;
+                                String City = "Noida";
+                                String aqi = "no";
+                                int days = 3;
+                                String alerts = "yes";
+
+                                getDaysForecast(City, days + 1, aqi, alerts);
+                                getCurrentWeather(City, aqi);
+                            }
+                        }
+                    });
+        }
     }
 
     private void getCurrentWeather(String city, String aqi) {
@@ -105,6 +138,22 @@ public class MainActivity extends AppCompatActivity {
 
                         weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(0).getHour());
                         DayHourForecast.setAdapter(weatherHourItemAdapter);
+
+//                      check weather there are any alerts
+                        if (forecastResponse.getAlerts().getAlertList() != null){
+//                          if yes, we create a alert dialog
+//                          First create a builder,
+                            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+
+//                          set content of the Alert Dialog
+                            alertDialog.setTitle(forecastResponse.getAlerts().getAlertList().get(0).getMsgType())
+                                    .setMessage(forecastResponse.getAlerts().getAlertList().get(0).getEvent())
+
+//                                    create a negative button to dismiss the dialog
+                                    .setNegativeButton("cancel",(dialog,id)->dialog.dismiss());
+//                          use dialog.show so that the dialog is displayed;
+                            alertDialog.show();
+                        }
                     }
 
                 } else {

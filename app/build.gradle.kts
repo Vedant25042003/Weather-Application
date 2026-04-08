@@ -40,6 +40,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.5.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.picasso:picasso:2.71828")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

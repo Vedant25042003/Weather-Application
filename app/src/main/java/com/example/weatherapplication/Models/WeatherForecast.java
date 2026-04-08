@@ -46,6 +46,9 @@ public class WeatherForecast {
                 @SerializedName("maxtemp_c")
                 private float maxDaytemp_c;
 
+                @SerializedName("mintemp_c")
+                private float minDayTemp_c;
+
                 @SerializedName("condition")
                 private DayCondition condition;
 
@@ -55,6 +58,9 @@ public class WeatherForecast {
 
                 public float getMaxtemp() {
                     return maxDaytemp_c;
+                }
+                public float getMinDayTemp_c() {
+                    return minDayTemp_c;
                 }
 
                 public static class DayCondition{
@@ -118,5 +124,43 @@ public class WeatherForecast {
             }
         }
 
+    }
+
+    @SerializedName("alerts")
+    private Alerts alerts;
+
+    public Alerts getAlerts() {
+        return alerts;
+    }
+    public static class Alerts{
+
+        @SerializedName("alert")
+        private List<Alert> alertList;
+
+        public List<Alert> getAlertList() {
+            return alertList;
+        }
+        public static class Alert{
+            @SerializedName("event")
+            private String Event;
+
+            @SerializedName("msgtype")
+            private String msgType;
+
+            @SerializedName("headline")
+            private String Headline;
+
+            public String getHeadline() {
+                return Headline;
+            }
+
+            public String getMsgType() {
+                return msgType;
+            }
+
+            public String getEvent() {
+                return Event;
+            }
+        }
     }
 }
