@@ -21,7 +21,8 @@
             android:layout_height="35dp"
             android:text=" "
             android:gravity="center"
-            android:textSize="11sp"/>
+            android:textSize="11sp"
+            android:layout_margin="3dp"/>
 
         <ImageView
             android:id="@+id/weatherImageDay"

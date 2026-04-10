@@ -1,13 +1,13 @@
 package com.example.weatherapplication.Activity;
 
 import android.Manifest;
-import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.util.Log;
+
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,7 +20,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
+
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.weatherapplication.Adapter.WeatherDayItemAdapter;
@@ -32,11 +32,13 @@ import com.example.weatherapplication.R;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.search.SearchBar;
+import com.google.android.material.search.SearchView;
 import com.squareup.picasso.Picasso;
 
-import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -44,7 +46,7 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView temp, weather;
+    TextView temp, weather, cityName;
     ImageView weatherImage;
     ApiRepository apiRepository = new ApiRepository();
     WeatherDetails weatherDetails;
@@ -64,11 +66,19 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
         temp = findViewById(R.id.Temp_c);
         weather = findViewById(R.id.weatherText);
         weatherImage = findViewById(R.id.weatherImage);
         DayWeatherForecast = findViewById(R.id.day_items);
         DayHourForecast = findViewById(R.id.hourForecast);
+        cityName = findViewById(R.id.cityName);
+
+        String aqi = "no";
+        int days = 3;
+        String alerts = "yes";
+
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -83,13 +93,33 @@ public class MainActivity extends AppCompatActivity {
                                 double latitude = location.getLatitude();
                                 double longitude = location.getLongitude();
 
-                                Log.d("Location", "Lat: " + latitude + ", Lon: " + longitude);
+                                try {
+                                    List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+                                    if (addresses != null && !addresses.isEmpty()){
+                                        String City = addresses.get(0).getLocality();
+                                        SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                                        sharedLocationPref.edit()
+                                                .putString("City",City)
+                                                .apply();
+                                    }
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
 
-//                                String City = latitude + "," + longitude;
-                                String City = "Noida";
-                                String aqi = "no";
-                                int days = 3;
-                                String alerts = "yes";
+                                SharedPreferences sharedPrefs = getSharedPreferences("LocationCache",MODE_PRIVATE);
+                                String City = sharedPrefs.getString("City","");
+//                                String City = "mandals";
+                                cityName.setText(City);
+
+                                getDaysForecast(City, days + 1, aqi, alerts);
+                                getCurrentWeather(City, aqi);
+
+                            } else{
+                                SharedPreferences sharedPrefs = getSharedPreferences("LocationCache",MODE_PRIVATE);
+                                String City = sharedPrefs.getString("City","");
+//                                String City = "mandals";
+
+                                cityName.setText(City);
 
                                 getDaysForecast(City, days + 1, aqi, alerts);
                                 getCurrentWeather(City, aqi);
@@ -140,18 +170,19 @@ public class MainActivity extends AppCompatActivity {
                         DayHourForecast.setAdapter(weatherHourItemAdapter);
 
 //                      check weather there are any alerts
-                        if (forecastResponse.getAlerts().getAlertList() != null){
+                        if (!forecastResponse.getAlerts().getAlertList().isEmpty()){
 //                          if yes, we create a alert dialog
 //                          First create a builder,
                             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
 
 //                          set content of the Alert Dialog
                             alertDialog.setTitle(forecastResponse.getAlerts().getAlertList().get(0).getMsgType())
-                                    .setMessage(forecastResponse.getAlerts().getAlertList().get(0).getEvent())
+                                    .setMessage(forecastResponse.getAlerts().getAlertList().get(0).getEvent()+"\n"
+                                            + forecastResponse.getAlerts().getAlertList().get(0).getHeadline())
 
 //                                    create a negative button to dismiss the dialog
                                     .setNegativeButton("cancel",(dialog,id)->dialog.dismiss());
-//                          use dialog.show so that the dialog is displayed;
+//                          Add dialog.show to show the dialog
                             alertDialog.show();
                         }
                     }
