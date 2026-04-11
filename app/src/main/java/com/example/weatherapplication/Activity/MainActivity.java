@@ -96,30 +96,36 @@ public class MainActivity extends AppCompatActivity {
                                 try {
                                     List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
                                     if (addresses != null && !addresses.isEmpty()){
-                                        String City = addresses.get(0).getLocality();
+                                        String CityName = addresses.get(0).getLocality();
                                         SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
                                         sharedLocationPref.edit()
-                                                .putString("City",City)
+                                                .putString("Lat",String.valueOf(latitude))
+                                                .putString("Lon", String.valueOf(longitude))
+                                                .putString("CityName",CityName)
                                                 .apply();
                                     }
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
 
-                                SharedPreferences sharedPrefs = getSharedPreferences("LocationCache",MODE_PRIVATE);
-                                String City = sharedPrefs.getString("City","");
+                                String City = latitude +","+ longitude;
+                                String CityName = getSharedPreferences("LocationCache",MODE_PRIVATE).getString("CityName","");
 //                                String City = "mandals";
-                                cityName.setText(City);
+                                cityName.setText(CityName);
 
                                 getDaysForecast(City, days + 1, aqi, alerts);
                                 getCurrentWeather(City, aqi);
 
                             } else{
                                 SharedPreferences sharedPrefs = getSharedPreferences("LocationCache",MODE_PRIVATE);
-                                String City = sharedPrefs.getString("City","");
-//                                String City = "mandals";
+                                String CityName = sharedPrefs.getString("CityName","");
+                                String Lat = sharedPrefs.getString("Lat","0.0");
+                                String Lon = sharedPrefs.getString("Lon","0.0");
 
-                                cityName.setText(City);
+                                String City = Lat + "," +Lon;
+//                                String City = "Aurangabad";
+
+                                cityName.setText(CityName);
 
                                 getDaysForecast(City, days + 1, aqi, alerts);
                                 getCurrentWeather(City, aqi);
