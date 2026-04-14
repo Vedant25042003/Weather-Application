@@ -1,5 +1,6 @@
 package com.example.weatherapplication.Api;
 
+import com.example.weatherapplication.Models.SearchModel;
 import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
 
@@ -20,5 +21,9 @@ public class ApiRepository {
 
     public Call<WeatherForecast> getDaysForecast(String City, int days, String aqi, String alerts){
         return retrofitAPI.getWeatherForecast(City, days, aqi, alerts);
+    }
+
+    public Call<List<SearchModel>> getSearchCityName(String City){
+        return retrofitAPI.getCityNames(City);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.weatherapplication.Api;
 
+import com.example.weatherapplication.Models.SearchModel;
 import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.Models.WeatherDetails;
 
@@ -19,5 +20,8 @@ public interface RetrofitAPI {
                                               @Query("days") int days,
                                               @Query("aqi") String aqi,
                                               @Query("alerts") String alerts);
+
+    @GET("search.json")
+    Call<List<SearchModel>> getCityNames(@Query("q") String City);
 
 }

@@ -44,7 +44,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        WeatherForecast.Forecast.ForecastDay forecastDay = forecastDays.get(position+1);
+        WeatherForecast.Forecast.ForecastDay forecastDay = forecastDays.get(position);
 
         LocalDate date = LocalDate.parse(forecastDay.getDate());
         DayOfWeek day = date.getDayOfWeek();
@@ -66,7 +66,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
 
     @Override
     public int getItemCount() {
-        return forecastDays != null ? forecastDays.size()-1 : 0;
+        return forecastDays != null ? forecastDays.size(): 0;
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
