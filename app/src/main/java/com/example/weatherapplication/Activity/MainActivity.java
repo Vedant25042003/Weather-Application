@@ -58,8 +58,9 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView temp, weather, cityName;
-    ImageView weatherImage;
+    TextView temp, weather, cityName, sunrise, feelsLike, sunset, winds, humidity, dew, sunrise_moonrise,
+            sunset_moonset;
+    ImageView weatherImage, sunriseMoonriseImage, sunsetMoonsetImage;
     SearchView citySearchView;
     SearchBar citySearchBar;
     ApiRepository apiRepository = new ApiRepository();
@@ -95,6 +96,16 @@ public class MainActivity extends AppCompatActivity {
         DayHourForecast = findViewById(R.id.hourForecast);
         cityName = findViewById(R.id.cityName);
         SearchCityName = findViewById(R.id.cityNameRV);
+        feelsLike = findViewById(R.id.feels_like_temp);
+        winds = findViewById(R.id.WindSpeedKMph);
+        humidity = findViewById(R.id.humidity);
+        dew = findViewById(R.id.dew_point);
+        sunrise = findViewById(R.id.sunrise_time);
+        sunset = findViewById(R.id.sunset_moonset_time);
+        sunrise_moonrise = findViewById(R.id.sunrise_moonrise_text);
+        sunset_moonset = findViewById(R.id.sunset_moonset_text);
+        sunriseMoonriseImage = findViewById(R.id.sunrise_moonrise_image);
+        sunsetMoonsetImage = findViewById(R.id.sunset_moonset_image);
 
         citySearchView.setupWithSearchBar(citySearchBar);
         SearchCity();
@@ -211,6 +222,12 @@ public class MainActivity extends AppCompatActivity {
                             .load(imageUrl)
                             .into(weatherImage);
 
+//                    set the last cardview items
+                    feelsLike.setText(String.valueOf(weatherDetails.getCurrent().getFeelsLike_c()+"°c"));
+                    winds.setText(String.valueOf(weatherDetails.getCurrent().getWindSpeedKmph()+" Km/h"));
+                    humidity.setText(String.valueOf(weatherDetails.getCurrent().getHumidity()));
+                    dew.setText(String.valueOf(weatherDetails.getCurrent().getDewpoint_c()+ "°c"));
+
                 } else {
                     Toast.makeText(MainActivity.this, "Something went wrong!", Toast.LENGTH_SHORT).show();
                 }
@@ -237,6 +254,22 @@ public class MainActivity extends AppCompatActivity {
 
                         weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(0).getHour());
                         DayHourForecast.setAdapter(weatherHourItemAdapter);
+
+                        if (weatherDetails.getCurrent().getIsDay() == 1) {
+                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getMoonriseTime());
+                            sunrise_moonrise.setText("Moonrise");
+                            sunriseMoonriseImage.setImageResource(R.drawable.mountain_moon_svgrepo_com);
+                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getSunsetTime());
+                            sunset_moonset.setText("Sunset");
+                            sunsetMoonsetImage.setImageResource(R.drawable.sunset_svgrepo_com);
+                        } else{
+                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getSunriseTime());
+                            sunrise_moonrise.setText("Sunrise");
+                            sunriseMoonriseImage.setImageResource(R.drawable.sunrise_over_mountains_svgrepo_com);
+                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getMoonsetTime());
+                            sunset_moonset.setText("Moonset");
+                            sunsetMoonsetImage.setImageResource(R.drawable.moon_svgrepo_com);
+                        }
 
 //                      check weather there are any alerts
                         if (!forecastResponse.getAlerts().getAlertList().isEmpty()){

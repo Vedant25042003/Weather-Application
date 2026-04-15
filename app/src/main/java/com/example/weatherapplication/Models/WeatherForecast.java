@@ -26,9 +26,14 @@ public class WeatherForecast {
             private String date;
             @SerializedName("day")
             private Day day;
+            @SerializedName("astro")
+            private Astro astro;
             @SerializedName("hour")
             private List<Hour> hour;
 
+            public Astro getAstro() {
+                return astro;
+            }
             public List<Hour> getHour() {
                 return hour;
             }
@@ -81,6 +86,33 @@ public class WeatherForecast {
 
                 }
 
+            }
+
+            public static class Astro{
+                @SerializedName("sunrise")
+                private String sunriseTime;
+                @SerializedName("sunset")
+                private String sunsetTime;
+                @SerializedName("moonrise")
+                private String moonriseTime;
+                @SerializedName("moonset")
+                private String moonsetTime;
+
+                public String getSunriseTime() {
+                    return sunriseTime;
+                }
+
+                public String getSunsetTime() {
+                    return sunsetTime;
+                }
+
+                public String getMoonriseTime() {
+                    return moonriseTime;
+                }
+
+                public String getMoonsetTime() {
+                    return moonsetTime;
+                }
             }
 
             public static class Hour{
