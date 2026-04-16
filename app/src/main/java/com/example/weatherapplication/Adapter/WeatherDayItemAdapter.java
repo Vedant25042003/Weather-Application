@@ -1,6 +1,7 @@
 package com.example.weatherapplication.Adapter;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,6 +29,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
 
     private Context context;
     private List<WeatherForecast.Forecast.ForecastDay> forecastDays;
+    private int textColor = Color.BLACK;
 
     public WeatherDayItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay> list) {
         this.context = context;
@@ -48,6 +50,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
 
         LocalDate date = LocalDate.parse(forecastDay.getDate());
         DayOfWeek day = date.getDayOfWeek();
+
         holder.DayofWeek.setText(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()));
 
         holder.forecastDaycondition.setText(forecastDay.getDay().getDayCondition().getDayConText());
@@ -62,12 +65,20 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
                 Toast.makeText(context, forecastDay.getDate(), Toast.LENGTH_SHORT).show();
             }
         });
+        holder.DayofWeek.setTextColor(textColor);
+        holder.dayTemp.setTextColor(textColor);
+        holder.forecastDaycondition.setTextColor(textColor);
     }
 
     @Override
     public int getItemCount() {
         return forecastDays != null ? forecastDays.size(): 0;
     }
+
+    public void setTextColor(int color) {
+        this.textColor = color;
+    }
+
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView forecastDaycondition, DayofWeek, dayTemp;

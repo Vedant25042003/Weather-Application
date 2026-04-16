@@ -1,6 +1,7 @@
 package com.example.weatherapplication.Adapter;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +27,8 @@ public class WeatherHourItemAdapter extends RecyclerView.Adapter<WeatherHourItem
 
     private Context context;
     private List<WeatherForecast.Forecast.ForecastDay.Hour> weatherHourForecasts;
+//    initialize text color white
+    private int textColor = Color.WHITE;
 
     public WeatherHourItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay.Hour> weatherForecastHourList){
         this.context = context;
@@ -54,6 +57,10 @@ public class WeatherHourItemAdapter extends RecyclerView.Adapter<WeatherHourItem
         Picasso.get()
                 .load("http:"+forecastDay.getHourCondition().getHourIcon())
                 .into(holder.hourImage);
+
+//      use function to change color according to the theme
+        holder.time.setTextColor(textColor);
+        holder.hour_temp_c.setTextColor(textColor);
     }
 
     @Override
@@ -61,7 +68,12 @@ public class WeatherHourItemAdapter extends RecyclerView.Adapter<WeatherHourItem
         return weatherHourForecasts.size();
     }
 
-     static class ViewHolder extends RecyclerView.ViewHolder{
+//  add a set text color function
+    public void setTextColor(int color) {
+        this.textColor = color;
+    }
+
+    static class ViewHolder extends RecyclerView.ViewHolder{
 
         TextView time, hour_temp_c;
         ImageView hourImage;
