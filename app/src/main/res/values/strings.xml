@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Weather Application</string>
+    <string name="search_city">Search City</string>
+    <string name="sunrise">Sunrise</string>
+    <string name="feels_like">Feels Like</string>
+    <string name="sunset">Sunset</string>
+    <string name="winds">Winds</string>
+    <string name="humidity">Humidity</string>
+    <string name="dew">Dew</string>
+    <string name="_0_00">0.00</string>
 </resources>

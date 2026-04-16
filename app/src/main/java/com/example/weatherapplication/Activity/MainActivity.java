@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.media.audiofx.EnvironmentalReverb;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -17,6 +16,10 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +28,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -48,7 +52,6 @@ import com.google.android.material.search.SearchView;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
     TextView temp, weather, cityName, sunrise, feelsLike, sunset, winds, humidity, dew, sunrise_moonrise,
             sunset_moonset;
-    ImageView weatherImage, sunriseMoonriseImage, sunsetMoonsetImage;
+    ImageView weatherImage, sunriseMoonriseImage, sunsetMoonsetImage, backgroundImage;
     SearchView citySearchView;
     SearchBar citySearchBar;
     ApiRepository apiRepository = new ApiRepository();
@@ -70,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     WeatherHourItemAdapter weatherHourItemAdapter;
     SearchItemAdapter searchItemAdapter;
     FusedLocationProviderClient fusedLocationProviderClient;
+
     String aqi = "no";
     int days = 3;
     String alerts = "yes";
@@ -77,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -106,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         sunset_moonset = findViewById(R.id.sunset_moonset_text);
         sunriseMoonriseImage = findViewById(R.id.sunrise_moonrise_image);
         sunsetMoonsetImage = findViewById(R.id.sunset_moonset_image);
+        backgroundImage = findViewById(R.id.backgroundImage);
 
         citySearchView.setupWithSearchBar(citySearchBar);
         SearchCity();
@@ -215,6 +222,23 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     weatherDetails = response.body();
 
+                    if (weatherDetails.getCurrent().getIsDay()==1){
+//                        we create a style in values night(themes) where we set text color to white
+//                        we set night mode to no
+                        backgroundImage.setImageResource(R.drawable.full_image);
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+//
+                    }else {
+//                        we create a style in values Theme where we set text color to Black
+//                        we set night mode to yes
+                        backgroundImage.setImageResource(R.drawable.background);
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+
+//                        tried to implement text color change using this only in theme doesn't work properly
+//                        use night mode easy to use
+//                        setTheme(R.style.Dark);
+                    }
+
                     String imageUrl = "https://" + weatherDetails.getCurrent().getCondition().getWeatherIcon();
                     temp.setText(String.valueOf(weatherDetails.getCurrent().getCurrentTemperature()+ "°c"));
                     weather.setText(String.valueOf(weatherDetails.getCurrent().getCondition().getWeatherText()));
@@ -277,15 +301,27 @@ public class MainActivity extends AppCompatActivity {
 //                          First create a builder,
                             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
 
-//                          set content of the Alert Dialog
-                            alertDialog.setTitle(forecastResponse.getAlerts().getAlertList().get(0).getMsgType())
-                                    .setMessage(forecastResponse.getAlerts().getAlertList().get(0).getEvent()+"\n"
-                                            + forecastResponse.getAlerts().getAlertList().get(0).getHeadline())
+                            LayoutInflater inflater = getLayoutInflater();
+                            View dialogView = inflater.inflate(R.layout.alerts_dialog, null);
 
-//                                    create a negative button to dismiss the dialog
-                                    .setNegativeButton("cancel",(dialog,id)->dialog.dismiss());
-//                          Add dialog.show to show the dialog
-                            alertDialog.show();
+                            alertDialog.setView(dialogView);
+
+                            TextView alertTitle, alertmsg;
+                            Button okBtn;
+
+                            alertTitle = dialogView.findViewById(R.id.alertType);
+                            alertmsg = dialogView.findViewById(R.id.alertDescription);
+                            okBtn = dialogView.findViewById(R.id.okButton);
+                            AlertDialog alert = alertDialog.create();
+
+                            alertTitle.setText(forecastResponse.getAlerts().getAlertList().get(0).getMsgType());
+                            alertmsg.setText(forecastResponse.getAlerts().getAlertList().get(0).getEvent()+"\n"
+                                          + forecastResponse.getAlerts().getAlertList().get(0).getHeadline());
+
+                            okBtn.setOnClickListener(view -> {
+                                alert.dismiss();
+                            });
+                            alert.show();
                         }
                     }
 

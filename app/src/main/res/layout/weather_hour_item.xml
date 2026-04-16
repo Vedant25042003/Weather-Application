@@ -6,9 +6,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_gravity="center"
     android:layout_margin="5dp"
-    app:cardElevation="2dp"
     app:cardCornerRadius="7dp"
-    android:backgroundTint="@color/white"
+    android:backgroundTint="@color/white_20"
     app:strokeColor="@color/black">
 
     <LinearLayout
@@ -22,7 +21,7 @@
             android:id="@+id/hourForecastTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="lll"
+            android:text=""
             android:gravity="center"
             android:textSize="11sp"/>
 
@@ -36,7 +35,7 @@
             android:id="@+id/forecastHourTemp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="lll"
+            android:text=""
             android:gravity="center"
             android:textSize="11sp"/>
 

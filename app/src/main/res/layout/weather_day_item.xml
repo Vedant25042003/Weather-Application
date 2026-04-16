@@ -7,8 +7,7 @@
     android:layout_gravity="center"
     android:layout_margin="5dp"
     android:minHeight="100dp"
-    app:cardElevation="3dp"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="@color/white_20"
     app:strokeColor="@color/black">
 
     <LinearLayout
@@ -20,7 +19,7 @@
             android:id="@+id/WeekDay"
             android:layout_width="match_parent"
             android:layout_height="35dp"
-            android:text=" "
+            android:text=""
             android:gravity="center"
             android:textSize="11sp"
             android:layout_margin="2dp"/>
@@ -36,7 +35,7 @@
             android:id="@+id/tempOfDay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text=" "
+            android:text=""
             android:textSize="11sp"
             android:layout_marginVertical="2dp"
             android:gravity="center"/>
@@ -45,7 +44,7 @@
             android:id="@+id/dayofWeek"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text=" "
+            android:text=""
             android:gravity="center"
             android:textSize="12sp"
             android:layout_marginVertical="1dp"/>
