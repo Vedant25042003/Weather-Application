@@ -9,9 +9,11 @@ import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.os.Build;
 import android.os.Bundle;
 
 import android.provider.Settings;
@@ -27,11 +29,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -75,8 +80,33 @@ public class MainActivity extends AppCompatActivity {
     WeatherHourItemAdapter weatherHourItemAdapter;
     SearchItemAdapter searchItemAdapter;
     FusedLocationProviderClient fusedLocationProviderClient;
-    boolean alertShown = false;
-//    set a boolean for alert dialog shown
+    boolean alertShown = false;//    set a boolean for alert dialog shown
+
+    private ActivityResultLauncher<String[]> locationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                // Retrieve individual grant status
+                Boolean fineGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                Boolean coarseGranted = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+
+                if (fineGranted != null && fineGranted && coarseGranted != null && coarseGranted) {
+                    if (isLocation(this)) {
+                        loadData();
+                    }else{
+                        AlertDialog.Builder locationDialog = new AlertDialog.Builder(this);
+                        locationDialog.setTitle("Permission Required")
+                                .setMessage("Turn On Location it is required to get data of your current location")
+                                .setPositiveButton("Turn On",(dialog,which)->{
+                                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                                    startActivity(intent);
+                                })
+                                .setNegativeButton("Cancel",(dialog,id)->dialog.dismiss());
+                        locationDialog.show();
+                    }
+                } else {
+                    // DENIED: User selected "Don't allow"
+                    Toast.makeText(this, "please give location permission", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     String aqi = "no";
     int days = 3;
@@ -95,7 +125,6 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 //      declare geocoder and initialize it
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         temp = findViewById(R.id.Temp_c);
         weather = findViewById(R.id.weatherText);
@@ -137,58 +166,14 @@ public class MainActivity extends AppCompatActivity {
 
 //          checks if location is granted or not
             } else if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-//                          if location is there get lat and lon of it
-                            double latitude = location.getLatitude();
-                            double longitude = location.getLongitude();
-
-//                          Use try catch for geocoder getting your locations name
-                            try {
-                                List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
-                                if (addresses != null && !addresses.isEmpty()) {
-                                    String CityName = addresses.get(0).getLocality();
-                                    SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
-                                    sharedLocationPref.edit()
-                                            .putString("Lat", String.valueOf(latitude))
-                                            .putString("Lon", String.valueOf(longitude))
-                                            .putString("CityName", CityName)
-                                            .apply();
-                                }
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-
-//                          create string city, get city name from shared prefs and then run api
-                            String City = latitude + "," + longitude;
-                            String CityName = getSharedPreferences("LocationCache", MODE_PRIVATE).getString("CityName", "");
-                            cityName.setText(CityName);
-
-                            getDaysForecast(City, days, aqi, alerts);
-                            getCurrentWeather(City, aqi);
-
-//                      if location is null use previous one
-                        } else {
-                            SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
-                            String CityName = sharedPrefs.getString("CityName", "");
-                            String Lat = sharedPrefs.getString("Lat", "0.0");
-                            String Lon = sharedPrefs.getString("Lon", "0.0");
-
-                            String City = Lat + "," + Lon;
-                            cityName.setText(CityName);
-
-                            getDaysForecast(City, days, aqi, alerts);
-                            getCurrentWeather(City, aqi);
-                        }
-                    }
-                });
+                loadData();
 
 //          if no location permission get one
             } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+                locationPermissionLauncher.launch(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                });
             }
 
 //      if no internet get a pop up dialog
@@ -205,33 +190,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//  create ion resume so when the activity pauses you start from where you left
+    //  create ion resume so when the activity pauses you start from where you left
     protected void onResume(){
         super.onResume();
+        String CitySearch = getIntent().getStringExtra("City");
         if (isInternetAvailable(this)){
-//            get shared pref and resume activity(calls api)
-            SharedPreferences sharedPreferences = getSharedPreferences("LocationCache", MODE_PRIVATE);
-            String CityName = sharedPreferences.getString("CityName", "");
-            String Lat = sharedPreferences.getString("Lat", "0.0");
-            String Lon = sharedPreferences.getString("Lon", "0.0");
-            String City = Lat +"," +Lon;
-
-            String CitySearch = getIntent().getStringExtra("City");
-            if (CitySearch != null){
+            if (isLocation(this) && CitySearch==null) {
+                    loadData();
+            }else if (CitySearch != null){
                 getCurrentWeather(CitySearch,aqi);
                 getDaysForecast(CitySearch, days, aqi, alerts);
                 cityName.setText(CitySearch);
-
-            }else{
-                getCurrentWeather(City,aqi);
-                getDaysForecast(City, days, aqi, alerts);
-                cityName.setText(CityName);
             }
         }
     }
 
 
-//    Api Call function to get current weather
+    //    Api Call function to get current weather
     private void getCurrentWeather(String city, String aqi) {
         apiRepository.getCurrentTemp(city, aqi).enqueue(new Callback<WeatherDetails>() {
             @Override
@@ -264,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    API call function to get forecast weather
+    //    API call function to get forecast weather
     private void getDaysForecast(String City, int days, String aqi, String alerts) {
         apiRepository.getDaysForecast(City, days, aqi, alerts).enqueue(new Callback<WeatherForecast>() {
             @Override
@@ -337,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
 //                          set title and msg in alert dialog
                             alertTitle.setText(forecastResponse.getAlerts().getAlertList().get(0).getMsgType());
                             alertmsg.setText(forecastResponse.getAlerts().getAlertList().get(0).getEvent()+"\n"
-                                          + forecastResponse.getAlerts().getAlertList().get(0).getHeadline());
+                                    + forecastResponse.getAlerts().getAlertList().get(0).getHeadline());
 
 //                          sets button functionality
                             okBtn.setOnClickListener(view -> {
@@ -360,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    API call to fetch city
+    //    API call to fetch city
     private void fetchCity(String City){
         apiRepository.getSearchCityName(City).enqueue(new Callback<List<SearchModel>>() {
             @Override
@@ -377,7 +352,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//    search functionality
+    //    search functionality
     private void SearchCity(){
 
 //      get text from search view
@@ -389,7 +364,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
 
-//          set on text changes listener
+            //          set on text changes listener
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 //              checks if weather data is there and set theme
@@ -410,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-//  function checks if internet is available
+    //  function checks if internet is available
     public boolean isInternetAvailable(Context context) {
 //      connectivity manager gets system service info like connectivity etc
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -431,7 +406,18 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-//   functions helps us set all text color as per our theme
+    public boolean isLocation(Context context){
+        LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        if (lm != null){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return lm.isLocationEnabled();
+            }
+        }
+        return false;
+    }
+
+
+    //   functions helps us set all text color as per our theme
     private void setAllTextColors(ViewGroup root, int color) {
 //      we use for loop to get every root item, child
         for (int i = 0; i < root.getChildCount(); i++) {
@@ -454,7 +440,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-//    helps to apply Day night ui color and background
+    //    helps to apply Day night ui color and background
     private void applyDayNightUI(boolean isDay) {
 
 //       isDay checks weather its day or night
@@ -478,6 +464,61 @@ public class MainActivity extends AppCompatActivity {
             weatherHourItemAdapter.setTextColor(textColor);
             weatherDayItemAdapter.notifyDataSetChanged();
             weatherHourItemAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void loadData(){
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+//                          if location is there get lat and lon of it
+                        double latitude = location.getLatitude();
+                        double longitude = location.getLongitude();
+
+//                          Use try catch for geocoder getting your locations name
+                        try {
+                            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+                            if (addresses != null && !addresses.isEmpty()) {
+                                String CityName = addresses.get(0).getLocality();
+                                SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                                sharedLocationPref.edit()
+                                        .putString("Lat", String.valueOf(latitude))
+                                        .putString("Lon", String.valueOf(longitude))
+                                        .putString("CityName", CityName)
+                                        .apply();
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
+//                          create string city, get city name from shared prefs and then run api
+                        String City = latitude + "," + longitude;
+                        String CityName = getSharedPreferences("LocationCache", MODE_PRIVATE).getString("CityName", "");
+                        cityName.setText(CityName);
+
+                        getDaysForecast(City, days, aqi, alerts);
+                        getCurrentWeather(City, aqi);
+
+//                      if location is null use previous one
+                    } else {
+                        SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                        String CityName = sharedPrefs.getString("CityName", "");
+                        String Lat = sharedPrefs.getString("Lat", "0.0");
+                        String Lon = sharedPrefs.getString("Lon", "0.0");
+
+                        String City = Lat + "," + Lon;
+                        cityName.setText(CityName);
+
+                        getDaysForecast(City, days, aqi, alerts);
+                        getCurrentWeather(City, aqi);
+                    }
+                }
+            });
         }
     }
 }
