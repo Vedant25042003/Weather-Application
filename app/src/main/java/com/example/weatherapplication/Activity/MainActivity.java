@@ -25,12 +25,14 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,6 +55,7 @@ import com.example.weatherapplication.Models.WeatherDetails;
 import com.example.weatherapplication.R;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.search.SearchBar;
 import com.google.android.material.search.SearchView;
@@ -73,14 +76,17 @@ public class MainActivity extends AppCompatActivity {
     ImageView weatherImage, sunriseMoonriseImage, sunsetMoonsetImage, backgroundImage;
     SearchView citySearchView;
     SearchBar citySearchBar;
+    ProgressBar progressBar;
     ApiRepository apiRepository = new ApiRepository();
     WeatherDetails weatherDetails;
+    WeatherForecast weatherForecast;
     RecyclerView DayWeatherForecast, DayHourForecast, SearchCityName;
     WeatherDayItemAdapter weatherDayItemAdapter;
     WeatherHourItemAdapter weatherHourItemAdapter;
     SearchItemAdapter searchItemAdapter;
     FusedLocationProviderClient fusedLocationProviderClient;
     boolean alertShown = false;//    set a boolean for alert dialog shown
+    boolean locationDialogShown = false;
 
     private ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -91,16 +97,9 @@ public class MainActivity extends AppCompatActivity {
                 if (fineGranted != null && fineGranted && coarseGranted != null && coarseGranted) {
                     if (isLocation(this)) {
                         loadData();
-                    }else{
-                        AlertDialog.Builder locationDialog = new AlertDialog.Builder(this);
-                        locationDialog.setTitle("Permission Required")
-                                .setMessage("Turn On Location it is required to get data of your current location")
-                                .setPositiveButton("Turn On",(dialog,which)->{
-                                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                                    startActivity(intent);
-                                })
-                                .setNegativeButton("Cancel",(dialog,id)->dialog.dismiss());
-                        locationDialog.show();
+                    }else if (!locationDialogShown){
+                        locationDialogShown=true;
+                        locationDialog();
                     }
                 } else {
                     // DENIED: User selected "Don't allow"
@@ -146,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
         sunriseMoonriseImage = findViewById(R.id.sunrise_moonrise_image);
         sunsetMoonsetImage = findViewById(R.id.sunset_moonset_image);
         backgroundImage = findViewById(R.id.backgroundImage);
+        progressBar = findViewById(R.id.loader);
 
 //      set up search view with searchbar
         citySearchView.setupWithSearchBar(citySearchBar);
@@ -194,10 +194,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume(){
         super.onResume();
         String CitySearch = getIntent().getStringExtra("City");
-        if (isInternetAvailable(this)){
+        if (isInternetAvailable(this) && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             if (isLocation(this) && CitySearch==null) {
-                    loadData();
-            }else if (CitySearch != null){
+                progressBar.setVisibility(View.VISIBLE);
+                loadData();
+            } else if (!isLocation(this) && CitySearch==null && !locationDialogShown) {
+                locationDialogShown = true;
+                locationDialog();
+
+            } else if (CitySearch != null){
                 getCurrentWeather(CitySearch,aqi);
                 getDaysForecast(CitySearch, days, aqi, alerts);
                 cityName.setText(CitySearch);
@@ -283,6 +288,9 @@ public class MainActivity extends AppCompatActivity {
 
 //                      check weather there are any alerts
                         if (!forecastResponse.getAlerts().getAlertList().isEmpty() && !alertShown){
+                            boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
+                            int backgroundColor = isDay ? Color.WHITE : Color.parseColor("#292941");
+                            int textColor = isDay ? Color.BLACK : Color.WHITE;
 
 //                          sets alert shown true as boolean
                             alertShown = true;
@@ -293,6 +301,12 @@ public class MainActivity extends AppCompatActivity {
 //                          inflate custom layout using layout inflater
                             LayoutInflater inflater = getLayoutInflater();
                             View dialogView = inflater.inflate(R.layout.alerts_dialog, null);
+
+//                          sets background for dialog as per day/night
+                            dialogView.setBackgroundColor(backgroundColor);
+
+//                          sets text color for dialog as per day/ night
+                            setAllTextColors((ViewGroup) dialogView,textColor);
 
 //                          set alert dialog view
                             alertDialog.setView(dialogView);
@@ -364,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
 
-            //          set on text changes listener
+            // set on text changes listener
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 //              checks if weather data is there and set theme
@@ -443,8 +457,8 @@ public class MainActivity extends AppCompatActivity {
     //    helps to apply Day night ui color and background
     private void applyDayNightUI(boolean isDay) {
 
-//       isDay checks weather its day or night
-//       Text color when day and when night
+//      isDay checks weather its day or night
+//      Text color when day and when night
         int textColor = isDay ? Color.BLACK : Color.WHITE;
 
 //      sets  Background on if day or night accordingly
@@ -455,11 +469,12 @@ public class MainActivity extends AppCompatActivity {
 //      set all text color in root layout according to the day night seen above
         setAllTextColors(rootLayout, textColor);
 
+
 //      set text color for RecyclerView adapter items
         if (weatherDayItemAdapter != null && weatherHourItemAdapter != null) {
-//            in adapter we create a function called text color
-//            and then call set color individually then add it here so it change when its needed
-//            and notify data changed
+//          in adapter we create a function called text color
+//          and then call set color individually then add it here so it change when its needed
+//          and notify data changed
             weatherDayItemAdapter.setTextColor(textColor);
             weatherHourItemAdapter.setTextColor(textColor);
             weatherDayItemAdapter.notifyDataSetChanged();
@@ -472,15 +487,18 @@ public class MainActivity extends AppCompatActivity {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
+            fusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY,null).addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
                 @Override
                 public void onSuccess(Location location) {
+
+                    progressBar.setVisibility(View.GONE);
+
                     if (location != null) {
-//                          if location is there get lat and lon of it
+//                  if location is there get lat and lon of it
                         double latitude = location.getLatitude();
                         double longitude = location.getLongitude();
 
-//                          Use try catch for geocoder getting your locations name
+//                  Use try catch for geocoder getting your locations name
                         try {
                             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
                             if (addresses != null && !addresses.isEmpty()) {
@@ -496,7 +514,7 @@ public class MainActivity extends AppCompatActivity {
                             throw new RuntimeException(e);
                         }
 
-//                          create string city, get city name from shared prefs and then run api
+//                      create string city, get city name from shared prefs and then run api
                         String City = latitude + "," + longitude;
                         String CityName = getSharedPreferences("LocationCache", MODE_PRIVATE).getString("CityName", "");
                         cityName.setText(CityName);
@@ -504,7 +522,7 @@ public class MainActivity extends AppCompatActivity {
                         getDaysForecast(City, days, aqi, alerts);
                         getCurrentWeather(City, aqi);
 
-//                      if location is null use previous one
+//                  if location is null use previous one
                     } else {
                         SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
                         String CityName = sharedPrefs.getString("CityName", "");
@@ -520,5 +538,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+    }
+
+    private void locationDialog(){
+        AlertDialog.Builder locationDialog = new AlertDialog.Builder(this);
+        locationDialog.setTitle("Permission Required")
+                .setMessage("Turn On Location it is required to get data of your current location")
+                .setPositiveButton("Turn On", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
+        locationDialog.show();
     }
 }
