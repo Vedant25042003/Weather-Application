@@ -1,6 +1,7 @@
 package com.example.weatherapplication.Adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.view.LayoutInflater;
@@ -14,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.weatherapplication.Activity.MainActivity;
 import com.example.weatherapplication.Models.WeatherForecast;
 import com.example.weatherapplication.R;
 import com.squareup.picasso.Picasso;
@@ -62,7 +64,15 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(context, forecastDay.getDate(), Toast.LENGTH_SHORT).show();
+//                Toast.makeText(context, forecastDay.getDate(), Toast.LENGTH_SHORT).show();
+                for (int i=0; i< forecastDays.size();i++){
+                    if (forecastDays.get(i).getDate().equals( forecastDay.getDate())) {
+                        Toast.makeText(context, String.valueOf(i), Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(context, MainActivity.class);
+                        intent.putExtra("position",i);
+                        context.startActivity(intent);
+                    }
+                }
             }
         });
         holder.DayofWeek.setTextColor(textColor);

@@ -203,6 +203,13 @@ public class MainActivity extends AppCompatActivity {
                 locationDialog();
 
             } else if (CitySearch != null){
+                SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                sharedLocationPref.edit()
+                        .remove("Lat")
+                        .remove("Lon")
+                        .remove("CityName")
+                        .putString("CitySearchName",CitySearch)
+                        .apply();
                 getCurrentWeather(CitySearch,aqi);
                 getDaysForecast(CitySearch, days, aqi, alerts);
                 cityName.setText(CitySearch);
@@ -484,6 +491,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadData(){
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -523,20 +531,29 @@ public class MainActivity extends AppCompatActivity {
                         getCurrentWeather(City, aqi);
 
 //                  if location is null use previous one
-                    } else {
-                        SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
-                        String CityName = sharedPrefs.getString("CityName", "");
-                        String Lat = sharedPrefs.getString("Lat", "0.0");
-                        String Lon = sharedPrefs.getString("Lon", "0.0");
-
-                        String City = Lat + "," + Lon;
-                        cityName.setText(CityName);
-
-                        getDaysForecast(City, days, aqi, alerts);
-                        getCurrentWeather(City, aqi);
                     }
                 }
             });
+            if (isLocation(this)){
+                SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
+
+                if (sharedPrefs.contains("Lat")) {
+                    String CityName = sharedPrefs.getString("CityName", "");
+                    String Lat = sharedPrefs.getString("Lat", "0.0");
+                    String Lon = sharedPrefs.getString("Lon", "0.0");
+                    String City = Lat + "," + Lon;
+                    cityName.setText(CityName);
+
+                    getDaysForecast(City, days, aqi, alerts);
+                    getCurrentWeather(City, aqi);
+                } else if (sharedPrefs.contains("CitySearchName")) {
+                    String CityName = sharedPrefs.getString("CitySearchName", "");
+                    cityName.setText(CityName);
+
+                    getDaysForecast(CityName, days, aqi, alerts);
+                    getCurrentWeather(CityName, aqi);
+                }
+            }
         }
     }
 
