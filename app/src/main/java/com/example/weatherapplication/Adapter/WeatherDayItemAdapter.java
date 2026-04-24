@@ -32,10 +32,12 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     private Context context;
     private List<WeatherForecast.Forecast.ForecastDay> forecastDays;
     private int textColor = Color.BLACK;
+    private OnItemClickListener listener;
 
-    public WeatherDayItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay> list) {
+    public WeatherDayItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay> list, OnItemClickListener listener) {
         this.context = context;
         this.forecastDays = list;
+        this.listener = listener;
     }
 
     @NonNull
@@ -68,9 +70,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
                 for (int i=0; i< forecastDays.size();i++){
                     if (forecastDays.get(i).getDate().equals( forecastDay.getDate())) {
                         Toast.makeText(context, String.valueOf(i), Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(context, MainActivity.class);
-                        intent.putExtra("position",i);
-                        context.startActivity(intent);
+                        listener.onItemClick(i);
                     }
                 }
             }
@@ -102,5 +102,9 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
             dayTemp = itemView.findViewById(R.id.tempOfDay);
 
         }
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(int item);
     }
 }

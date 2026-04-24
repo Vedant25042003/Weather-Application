@@ -87,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
     FusedLocationProviderClient fusedLocationProviderClient;
     boolean alertShown = false;//    set a boolean for alert dialog shown
     boolean locationDialogShown = false;
+    int i=0;
 
     private ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -96,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (fineGranted != null && fineGranted && coarseGranted != null && coarseGranted) {
                     if (isLocation(this)) {
-                        loadData();
+                        currentLocation();
                     }else if (!locationDialogShown){
                         locationDialogShown=true;
                         locationDialog();
@@ -160,13 +161,21 @@ public class MainActivity extends AppCompatActivity {
 
 //          check if the city from search is there or not, if yes then call api
             if (City != null) {
+                SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                sharedLocationPref.edit()
+                        .remove("Lat")
+                        .remove("Lon")
+                        .remove("CityName")
+                        .putString("CitySearchName",City)
+                        .apply();
+
                 getCurrentWeather(City, aqi);
                 getDaysForecast(City, days, aqi, alerts);
                 cityName.setText(City);
 
 //          checks if location is granted or not
             } else if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                loadData();
+                currentLocation();
 
 //          if no location permission get one
             } else {
@@ -197,7 +206,8 @@ public class MainActivity extends AppCompatActivity {
         if (isInternetAvailable(this) && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
             if (isLocation(this) && CitySearch==null) {
                 progressBar.setVisibility(View.VISIBLE);
-                loadData();
+                currentLocation();
+
             } else if (!isLocation(this) && CitySearch==null && !locationDialogShown) {
                 locationDialogShown = true;
                 locationDialog();
@@ -210,9 +220,7 @@ public class MainActivity extends AppCompatActivity {
                         .remove("CityName")
                         .putString("CitySearchName",CitySearch)
                         .apply();
-                getCurrentWeather(CitySearch,aqi);
-                getDaysForecast(CitySearch, days, aqi, alerts);
-                cityName.setText(CitySearch);
+                loadData();
             }
         }
     }
@@ -262,10 +270,53 @@ public class MainActivity extends AppCompatActivity {
                     if (forecastResponse.getForecast() != null && forecastResponse.getForecast().getForecastDay() != null) {
 
 //                      set recycler views Adapter to get and display data as we get it from API
-                        weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay());
+                        weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay(), item -> {
+                            i = item;
+
+                            if (weatherDetails.getCurrent().getIsDay() == 1) {
+                                sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getMoonriseTime());
+                                sunrise_moonrise.setText("Moonrise");
+                                sunriseMoonriseImage.setImageResource(R.drawable.mountain_moon_svgrepo_com);
+                                sunset.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunsetTime());
+                                sunset_moonset.setText("Sunset");
+                                sunsetMoonsetImage.setImageResource(R.drawable.sunset_svgrepo_com);
+                            } else{
+                                sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunriseTime());
+                                sunrise_moonrise.setText("Sunrise");
+                                sunriseMoonriseImage.setImageResource(R.drawable.sunrise_over_mountains_svgrepo_com);
+                                sunset.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getMoonsetTime());
+                                sunset_moonset.setText("Moonset");
+                                sunsetMoonsetImage.setImageResource(R.drawable.moon_svgrepo_com);
+                            }
+
+                            String imageUrl = "https://" +forecastResponse.getForecast().getForecastDay().get(i).getDay().getDayCondition().getImage();
+                            temp.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getMinDayTemp_c()+ "°c"));
+                            weather.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getDayCondition().getDayConText()));
+                            Picasso.get()
+                                    .load(imageUrl)
+                                    .into(weatherImage);
+
+//                    set the last cardview items
+                            feelsLike.setText(String.valueOf(weatherDetails.getCurrent().getFeelsLike_c()+"°c"));
+                            winds.setText(String.valueOf(weatherDetails.getCurrent().getWindSpeedKmph()+" Km/h"));
+                            humidity.setText(String.valueOf(weatherDetails.getCurrent().getHumidity()));
+                            dew.setText(String.valueOf(weatherDetails.getCurrent().getDewpoint_c()+ "°c"));
+
+
+                            weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(i).getHour());
+                            DayHourForecast.setAdapter(weatherHourItemAdapter);
+
+                            if (weatherDetails.getCurrent() != null) {
+//                          checks weather day or night
+                                boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
+//                          apply color changes according to day or night
+                                applyDayNightUI(isDay);
+                            }
+
+                        });
                         DayWeatherForecast.setAdapter(weatherDayItemAdapter);
 
-                        weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(0).getHour());
+                        weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(i).getHour());
                         DayHourForecast.setAdapter(weatherHourItemAdapter);
 
 //                      checks weather details isnt empty
@@ -278,70 +329,32 @@ public class MainActivity extends AppCompatActivity {
 
 //                      checks if its day or night and set the item text
                         if (weatherDetails.getCurrent().getIsDay() == 1) {
-                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getMoonriseTime());
+                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getMoonriseTime());
                             sunrise_moonrise.setText("Moonrise");
                             sunriseMoonriseImage.setImageResource(R.drawable.mountain_moon_svgrepo_com);
-                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getSunsetTime());
+                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunsetTime());
                             sunset_moonset.setText("Sunset");
                             sunsetMoonsetImage.setImageResource(R.drawable.sunset_svgrepo_com);
                         } else{
-                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getSunriseTime());
+                            sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunriseTime());
                             sunrise_moonrise.setText("Sunrise");
                             sunriseMoonriseImage.setImageResource(R.drawable.sunrise_over_mountains_svgrepo_com);
-                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(0).getAstro().getMoonsetTime());
+                            sunset.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getMoonsetTime());
                             sunset_moonset.setText("Moonset");
                             sunsetMoonsetImage.setImageResource(R.drawable.moon_svgrepo_com);
                         }
 
 //                      check weather there are any alerts
                         if (!forecastResponse.getAlerts().getAlertList().isEmpty() && !alertShown){
-                            boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
-                            int backgroundColor = isDay ? Color.WHITE : Color.parseColor("#292941");
-                            int textColor = isDay ? Color.BLACK : Color.WHITE;
 
 //                          sets alert shown true as boolean
                             alertShown = true;
 
-//                          build Alert dialog using builder
-                            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+                            String title = forecastResponse.getAlerts().getAlertList().get(0).getMsgType();
+                            String alertMsg = forecastResponse.getAlerts().getAlertList().get(0).getEvent()
+                                    +"\n"+ forecastResponse.getAlerts().getAlertList().get(0).getHeadline();
 
-//                          inflate custom layout using layout inflater
-                            LayoutInflater inflater = getLayoutInflater();
-                            View dialogView = inflater.inflate(R.layout.alerts_dialog, null);
-
-//                          sets background for dialog as per day/night
-                            dialogView.setBackgroundColor(backgroundColor);
-
-//                          sets text color for dialog as per day/ night
-                            setAllTextColors((ViewGroup) dialogView,textColor);
-
-//                          set alert dialog view
-                            alertDialog.setView(dialogView);
-
-//                          gets the items in alert dialog
-                            TextView alertTitle, alertmsg;
-                            Button okBtn;
-
-//                          initialize item in alert dialog
-                            alertTitle = dialogView.findViewById(R.id.alertType);
-                            alertmsg = dialogView.findViewById(R.id.alertDescription);
-                            okBtn = dialogView.findViewById(R.id.okButton);
-
-//                          creates alert dialog
-                            AlertDialog alert = alertDialog.create();
-
-//                          set title and msg in alert dialog
-                            alertTitle.setText(forecastResponse.getAlerts().getAlertList().get(0).getMsgType());
-                            alertmsg.setText(forecastResponse.getAlerts().getAlertList().get(0).getEvent()+"\n"
-                                    + forecastResponse.getAlerts().getAlertList().get(0).getHeadline());
-
-//                          sets button functionality
-                            okBtn.setOnClickListener(view -> {
-                                alert.dismiss();
-                            });
-
-//                          shows alert
-                            alert.show();
+                            WeatherAlertDialog(title,alertMsg);
                         }
                     }
                 } else {
@@ -490,12 +503,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadData(){
+
+        if (!isLocation(this)){
+            SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
+
+            if (sharedPrefs.contains("Lat")) {
+                String CityName = sharedPrefs.getString("CityName", "");
+                String Lat = sharedPrefs.getString("Lat", "0.0");
+                String Lon = sharedPrefs.getString("Lon", "0.0");
+                String City = Lat + "," + Lon;
+                cityName.setText(CityName);
+
+                getDaysForecast(City, days, aqi, alerts);
+                getCurrentWeather(City, aqi);
+
+            } else if (sharedPrefs.contains("CitySearchName")) {
+                String CityName = sharedPrefs.getString("CitySearchName", "");
+                cityName.setText(CityName);
+
+                getDaysForecast(CityName, days, aqi, alerts);
+                getCurrentWeather(CityName, aqi);
+            }
+        }
+
+    }
+
+    private void currentLocation(){
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            fusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY,null).addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
+            fusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
                 @Override
                 public void onSuccess(Location location) {
 
@@ -509,6 +548,7 @@ public class MainActivity extends AppCompatActivity {
 //                  Use try catch for geocoder getting your locations name
                         try {
                             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+
                             if (addresses != null && !addresses.isEmpty()) {
                                 String CityName = addresses.get(0).getLocality();
                                 SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
@@ -518,6 +558,7 @@ public class MainActivity extends AppCompatActivity {
                                         .putString("CityName", CityName)
                                         .apply();
                             }
+
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -530,30 +571,9 @@ public class MainActivity extends AppCompatActivity {
                         getDaysForecast(City, days, aqi, alerts);
                         getCurrentWeather(City, aqi);
 
-//                  if location is null use previous one
                     }
                 }
             });
-            if (isLocation(this)){
-                SharedPreferences sharedPrefs = getSharedPreferences("LocationCache", MODE_PRIVATE);
-
-                if (sharedPrefs.contains("Lat")) {
-                    String CityName = sharedPrefs.getString("CityName", "");
-                    String Lat = sharedPrefs.getString("Lat", "0.0");
-                    String Lon = sharedPrefs.getString("Lon", "0.0");
-                    String City = Lat + "," + Lon;
-                    cityName.setText(CityName);
-
-                    getDaysForecast(City, days, aqi, alerts);
-                    getCurrentWeather(City, aqi);
-                } else if (sharedPrefs.contains("CitySearchName")) {
-                    String CityName = sharedPrefs.getString("CitySearchName", "");
-                    cityName.setText(CityName);
-
-                    getDaysForecast(CityName, days, aqi, alerts);
-                    getCurrentWeather(CityName, aqi);
-                }
-            }
         }
     }
 
@@ -568,4 +588,54 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", (dialog, id) -> dialog.dismiss());
         locationDialog.show();
     }
+
+
+    private void WeatherAlertDialog(String title, String alertMsg){
+
+        boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
+        int backgroundColor = isDay ? Color.WHITE : Color.parseColor("#292941");
+        int textColor = isDay ? Color.BLACK : Color.WHITE;
+
+
+//      build Alert dialog using builder
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+
+//      inflate custom layout using layout inflater
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.alerts_dialog, null);
+
+//      sets background for dialog as per day/night
+        dialogView.setBackgroundColor(backgroundColor);
+
+//      sets text color for dialog as per day/ night
+        setAllTextColors((ViewGroup) dialogView,textColor);
+
+//      set alert dialog view
+        alertDialog.setView(dialogView);
+
+//      gets the items in alert dialog
+        TextView alertTitle, alertmsg;
+        Button okBtn;
+
+//      initialize item in alert dialog
+        alertTitle = dialogView.findViewById(R.id.alertType);
+        alertmsg = dialogView.findViewById(R.id.alertDescription);
+        okBtn = dialogView.findViewById(R.id.okButton);
+
+//      creates alert dialog
+        AlertDialog alert = alertDialog.create();
+
+//      set title and msg in alert dialog
+        alertTitle.setText(title);
+        alertmsg.setText(alertMsg);
+
+//      sets button functionality
+        okBtn.setOnClickListener(view -> {
+            alert.dismiss();
+        });
+
+//      shows alert
+        alert.show();
+    }
+
 }
