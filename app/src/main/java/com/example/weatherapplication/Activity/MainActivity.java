@@ -62,6 +62,8 @@ import com.google.android.material.search.SearchView;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -72,7 +74,7 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity {
 
     TextView temp, weather, cityName, sunrise, feelsLike, sunset, winds, humidity, dew, sunrise_moonrise,
-            sunset_moonset;
+            sunset_moonset, Day;
     ImageView weatherImage, sunriseMoonriseImage, sunsetMoonsetImage, backgroundImage;
     SearchView citySearchView;
     SearchBar citySearchBar;
@@ -85,10 +87,12 @@ public class MainActivity extends AppCompatActivity {
     WeatherHourItemAdapter weatherHourItemAdapter;
     SearchItemAdapter searchItemAdapter;
     FusedLocationProviderClient fusedLocationProviderClient;
-    boolean alertShown = false;//    set a boolean for alert dialog shown
+    boolean alertShown = false; //    set a boolean for alert dialog shown
     boolean locationDialogShown = false;
     int i=0;
+    String DaysOfWeek;
 
+//  used to get permission result
     private ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
                 // Retrieve individual grant status
@@ -115,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+//      used so the app can use full screen
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         EdgeToEdge.enable(this);
@@ -124,8 +129,8 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-//      declare geocoder and initialize it
 
+//      declare all items
         temp = findViewById(R.id.Temp_c);
         weather = findViewById(R.id.weatherText);
         weatherImage = findViewById(R.id.weatherImage);
@@ -147,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         sunsetMoonsetImage = findViewById(R.id.sunset_moonset_image);
         backgroundImage = findViewById(R.id.backgroundImage);
         progressBar = findViewById(R.id.loader);
+        Day = findViewById(R.id.day);
 
 //      set up search view with searchbar
         citySearchView.setupWithSearchBar(citySearchBar);
@@ -155,6 +161,17 @@ public class MainActivity extends AppCompatActivity {
 
 //      gets you your location
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+//      get days of week
+        LocalDate date = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            date = LocalDate.now();
+            DayOfWeek day = date.getDayOfWeek();
+            DaysOfWeek = String.valueOf(day);
+            Day.setText(DaysOfWeek);
+
+        }
 
 //      check if internet is available
         if (isInternetAvailable(this)) {
@@ -175,7 +192,15 @@ public class MainActivity extends AppCompatActivity {
 
 //          checks if location is granted or not
             } else if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                currentLocation();
+                SharedPreferences sharedPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
+                if (isLocation(this)) {
+                    currentLocation();
+                }else if (sharedPref.contains("Lat") || sharedPref.contains("CitySearchName")){
+                    loadData();
+                }else{
+                    locationDialogShown=true;
+                    locationDialog();
+                }
 
 //          if no location permission get one
             } else {
@@ -191,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
             alertDialog.setTitle("No Internet Connection")
                     .setMessage("Please turn on the internet Connection to get latest weather updates")
                     .setPositiveButton("Turn On",(dialog, which)->{
-                        Intent intent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
+                        Intent intent = new Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS);
                         startActivity(intent);
                     })
                     .setNegativeButton("Ok", (dialog,id)->dialog.dismiss());
@@ -211,6 +236,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (!isLocation(this) && CitySearch==null && !locationDialogShown) {
                 locationDialogShown = true;
                 locationDialog();
+                loadData();
 
             } else if (CitySearch != null){
                 SharedPreferences sharedLocationPref = getSharedPreferences("LocationCache", MODE_PRIVATE);
@@ -241,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                             .load(imageUrl)
                             .into(weatherImage);
 
-//                    set the last cardview items
+//                  set the last cardview items
                     feelsLike.setText(String.valueOf(weatherDetails.getCurrent().getFeelsLike_c()+"°c"));
                     winds.setText(String.valueOf(weatherDetails.getCurrent().getWindSpeedKmph()+" Km/h"));
                     humidity.setText(String.valueOf(weatherDetails.getCurrent().getHumidity()));
@@ -270,16 +296,27 @@ public class MainActivity extends AppCompatActivity {
                     if (forecastResponse.getForecast() != null && forecastResponse.getForecast().getForecastDay() != null) {
 
 //                      set recycler views Adapter to get and display data as we get it from API
-                        weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay(), item -> {
-                            i = item;
+                        weatherDayItemAdapter = new WeatherDayItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay(), (item, day) -> {
+//                          we added on item click listener instead of using intent in our dayItem Adapter
+//                          this updated the activity without creating a new one
+//                          if we use intent it creates a new activity stack
 
+                            i = item; // this is i which we get from the day item(i is the list index for days list)
+                            DaysOfWeek = day; // these are week day which we need from day item
+
+                            Day.setText(DaysOfWeek); // here we set week day to textview
+
+//                          here we have logic for moonrise, sunrise, etc
                             if (weatherDetails.getCurrent().getIsDay() == 1) {
+                                // we use i which we got from day adapter
+//                              // to get the forecast day when day item is clicked
                                 sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getMoonriseTime());
                                 sunrise_moonrise.setText("Moonrise");
                                 sunriseMoonriseImage.setImageResource(R.drawable.mountain_moon_svgrepo_com);
                                 sunset.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunsetTime());
                                 sunset_moonset.setText("Sunset");
                                 sunsetMoonsetImage.setImageResource(R.drawable.sunset_svgrepo_com);
+
                             } else{
                                 sunrise.setText(forecastResponse.getForecast().getForecastDay().get(i).getAstro().getSunriseTime());
                                 sunrise_moonrise.setText("Sunrise");
@@ -290,32 +327,36 @@ public class MainActivity extends AppCompatActivity {
                             }
 
                             String imageUrl = "https://" +forecastResponse.getForecast().getForecastDay().get(i).getDay().getDayCondition().getImage();
-                            temp.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getMinDayTemp_c()+ "°c"));
+                            temp.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getAvgDayTemp_c()+ "°c"));
                             weather.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getDayCondition().getDayConText()));
                             Picasso.get()
                                     .load(imageUrl)
                                     .into(weatherImage);
 
-//                    set the last cardview items
-                            feelsLike.setText(String.valueOf(weatherDetails.getCurrent().getFeelsLike_c()+"°c"));
-                            winds.setText(String.valueOf(weatherDetails.getCurrent().getWindSpeedKmph()+" Km/h"));
-                            humidity.setText(String.valueOf(weatherDetails.getCurrent().getHumidity()));
-                            dew.setText(String.valueOf(weatherDetails.getCurrent().getDewpoint_c()+ "°c"));
-
+//                          set the last cardview items
+                            feelsLike.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getHour().get(0).getFeelsLike_c()+"°c"));
+                            winds.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getHour().get(0).getWindSpeed_kmph()+" Km/h"));
+                            humidity.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getDay().getAvgHumidity()));
+                            dew.setText(String.valueOf(forecastResponse.getForecast().getForecastDay().get(i).getHour().get(0).getDewPoint_c()+ "°c"));
 
                             weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(i).getHour());
                             DayHourForecast.setAdapter(weatherHourItemAdapter);
 
                             if (weatherDetails.getCurrent() != null) {
-//                          checks weather day or night
+//                              checks weather day or night
                                 boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
-//                          apply color changes according to day or night
+
+//                              apply color changes according to day or night
                                 applyDayNightUI(isDay);
                             }
-
+//                      here the adapter is complete like if i changes the values inside it will change automatically
+//                      like no new activity is created to load the data/ change the data
                         });
+
+//                      sets adapter
                         DayWeatherForecast.setAdapter(weatherDayItemAdapter);
 
+//                      sets hour adapter, the i here is the day index according to which hour data is shown
                         weatherHourItemAdapter = new WeatherHourItemAdapter(MainActivity.this, forecastResponse.getForecast().getForecastDay().get(i).getHour());
                         DayHourForecast.setAdapter(weatherHourItemAdapter);
 
@@ -350,6 +391,7 @@ public class MainActivity extends AppCompatActivity {
 //                          sets alert shown true as boolean
                             alertShown = true;
 
+//                          sets content of alert dialog
                             String title = forecastResponse.getAlerts().getAlertList().get(0).getMsgType();
                             String alertMsg = forecastResponse.getAlerts().getAlertList().get(0).getEvent()
                                     +"\n"+ forecastResponse.getAlerts().getAlertList().get(0).getHeadline();
@@ -440,6 +482,7 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
+//    check weather location is on
     public boolean isLocation(Context context){
         LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         if (lm != null){
@@ -502,6 +545,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+//  function loads data from shared prefs and is used when necessary
     private void loadData(){
 
         if (!isLocation(this)){
@@ -528,16 +572,20 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+//  function gets the current data from the current location when location is on
     private void currentLocation(){
+//      initialize geocoder to get names of city from co-ordinates
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
+//          gets current location so data is updated instantly after permission is given
             fusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
                 @Override
                 public void onSuccess(Location location) {
 
+//                  sets progressbar gone as soon as success/ data is loaded
                     progressBar.setVisibility(View.GONE);
 
                     if (location != null) {
@@ -577,6 +625,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+//    location dialog used when location is off to ask user to switch it on
     private void locationDialog(){
         AlertDialog.Builder locationDialog = new AlertDialog.Builder(this);
         locationDialog.setTitle("Permission Required")
@@ -590,12 +639,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+//  custom weather alerts dialog
     private void WeatherAlertDialog(String title, String alertMsg){
 
         boolean isDay = weatherDetails.getCurrent().getIsDay() == 1;
         int backgroundColor = isDay ? Color.WHITE : Color.parseColor("#292941");
         int textColor = isDay ? Color.BLACK : Color.WHITE;
-
 
 //      build Alert dialog using builder
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
@@ -637,5 +686,4 @@ public class MainActivity extends AppCompatActivity {
 //      shows alert
         alert.show();
     }
-
 }

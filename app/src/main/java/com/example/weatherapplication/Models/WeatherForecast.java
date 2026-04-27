@@ -54,8 +54,14 @@ public class WeatherForecast {
                 @SerializedName("mintemp_c")
                 private float minDayTemp_c;
 
+                @SerializedName("avgtemp_c")
+                private float avgDayTemp_c;
+
                 @SerializedName("condition")
                 private DayCondition condition;
+
+                @SerializedName("avghumidity")
+                private String avgHumidity;
 
                 public DayCondition getDayCondition() {
                     return condition;
@@ -66,6 +72,14 @@ public class WeatherForecast {
                 }
                 public float getMinDayTemp_c() {
                     return minDayTemp_c;
+                }
+
+                public float getAvgDayTemp_c() {
+                    return avgDayTemp_c;
+                }
+
+                public String getAvgHumidity() {
+                    return avgHumidity;
                 }
 
                 public static class DayCondition{
@@ -122,8 +136,21 @@ public class WeatherForecast {
                 @SerializedName("temp_c")
                 private String temp_c;
 
+                @SerializedName("dewpoint_c")
+                private String dewPoint_c;
+
+                @SerializedName("feelslike_c")
+                private String feelsLike_c;
+
                 @SerializedName("condition")
                 private HourCondition hourCondition;
+
+                @SerializedName("wind_kph")
+                private String WindSpeed_kmph;
+
+                public String getWindSpeed_kmph() {
+                    return WindSpeed_kmph;
+                }
 
                 public String getTime() {
                     return time;
@@ -131,6 +158,14 @@ public class WeatherForecast {
 
                 public String getTemp_c() {
                     return temp_c;
+                }
+
+                public String getDewPoint_c() {
+                    return dewPoint_c;
+                }
+
+                public String getFeelsLike_c() {
+                    return feelsLike_c;
                 }
 
 

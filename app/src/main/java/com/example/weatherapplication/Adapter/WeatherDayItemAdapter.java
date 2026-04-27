@@ -34,6 +34,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     private int textColor = Color.BLACK;
     private OnItemClickListener listener;
 
+//    we add the interface here so when we set adapter we can add what to do when RV item is clicked
     public WeatherDayItemAdapter(Context context, List<WeatherForecast.Forecast.ForecastDay> list, OnItemClickListener listener) {
         this.context = context;
         this.forecastDays = list;
@@ -43,6 +44,7 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+//        inflate the layout
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.weather_day_item, parent, false);
         return new ViewHolder(view);
     }
@@ -52,29 +54,38 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         WeatherForecast.Forecast.ForecastDay forecastDay = forecastDays.get(position);
 
+//      gets date from the api
         LocalDate date = LocalDate.parse(forecastDay.getDate());
+
+//      loads the days of week
         DayOfWeek day = date.getDayOfWeek();
 
+//      sets day of week
         holder.DayofWeek.setText(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()));
 
+//      sets day condition image and temp
         holder.forecastDaycondition.setText(forecastDay.getDay().getDayCondition().getDayConText());
         holder.dayTemp.setText(String.valueOf(forecastDay.getDay().getMaxtemp()+"°"+ "/ " +forecastDay.getDay().getMinDayTemp_c()+"°"));
         Picasso.get()
                 .load("https:" + forecastDay.getDay().getDayCondition().getImage())
                 .into(holder.forecastDayImage);
 
+//      when user clicks day item
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 //                Toast.makeText(context, forecastDay.getDate(), Toast.LENGTH_SHORT).show();
+//              to get the index of the item clicked
                 for (int i=0; i< forecastDays.size();i++){
                     if (forecastDays.get(i).getDate().equals( forecastDay.getDate())) {
-                        Toast.makeText(context, String.valueOf(i), Toast.LENGTH_SHORT).show();
-                        listener.onItemClick(i);
+//                        Toast.makeText(context, String.valueOf(i), Toast.LENGTH_SHORT).show();
+//                      this acts as put extra of intent to get values in activity
+                        listener.onItemClick(i, String.valueOf(day));
                     }
                 }
             }
         });
+//      sets color of text
         holder.DayofWeek.setTextColor(textColor);
         holder.dayTemp.setTextColor(textColor);
         holder.forecastDaycondition.setTextColor(textColor);
@@ -104,7 +115,10 @@ public class WeatherDayItemAdapter extends RecyclerView.Adapter<WeatherDayItemAd
         }
     }
 
+
+//    created interface for click of recycler view items
     public interface OnItemClickListener {
-        void onItemClick(int item);
+//        when item is clicked you will store these values
+        void onItemClick(int item, String day);
     }
 }
