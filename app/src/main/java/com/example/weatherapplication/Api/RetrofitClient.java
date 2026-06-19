@@ -9,7 +9,7 @@ import okhttp3.Request;
 public class RetrofitClient {
 
     public static final String BaseURL = "http://api.weatherapi.com/v1/";
-    private static final String Key = "651acd42ccf8469e95250549263103";
+    
      private static Retrofit retrofit;
 
      public static Retrofit getInstance(){
